@@ -9,20 +9,21 @@ dotenv.config();
 
 const app = express();
 
-const mongoClient = new MongoClient(process.env.MONGO_URI);
+const mongoClient = new MongoClient("mongodb://127.0.0.1:27017");
 let db;
 
-MongoClient.connect();
+mongoClient.connect();
 db = mongoClient.db("bbs");
 
 app.use(cors());
 app.use(express.json());
 
 const userSchema = joi.object({
-    name: joi.string().required().min(10).max(100),
+    name: joi.string().required().min(3).max(20),
+    lastName: joi.string().required().min(3).max(20),
     email: joi.string().email().required(),
     password: joi.string().required().min(6),
-    confimation: joi.string().required().min(6)
+    confirmation: joi.string().required().min(6)
 });
 
 const users = db.collection('users');
@@ -30,7 +31,8 @@ const sessions = db.collection('sessions');
 const products = db.collection('products');
 
 app.get('/', async (req, res) => {
-    return res.sendStatus(200);
+    const usuarios = await users.find().toArray()
+    return res.status(200).send(usuarios);
 });
 
 app.post('/cadastro', async (req, res) => {
@@ -49,13 +51,13 @@ app.post('/cadastro', async (req, res) => {
         return res.status(409).send("Email de usuário já cadastrado. Insira um email válido.")
     }
 
-    if(formNewUser.password !== formNewUser.confimation) {
+    if(formNewUser.password !== formNewUser.confirmation) {
         return res.status(401).send("Senha e confirmação de senha precisam ser iguais!");
     }
-    delete formNewUser.confimation
+    delete formNewUser.confirmation
 
     const hashPass = bcrypt.hashSync(formNewUser.password, 10);
-    await db.users.insertOne({...formNewUser, password: hashPass})
+    await users.insertOne({...formNewUser, password: hashPass})
 
     return res.sendStatus(201);
 
@@ -72,12 +74,12 @@ app.post("/login", async (req, res) => {
 
     const emailDatabase = await users.findOne({ email });
     if(!emailDatabase) {
-        return res.status(404).send("Email não cadastrado!");
+        return res.status(404).send("Email inválido!");
     }
 
     const confirmPass = bcrypt.compareSync(password, emailDatabase.password);
     if(!confirmPass) {
-        res.status(401).send("Senha incorreta!");
+        return res.status(401).send("Senha incorreta!");
     };
 
     const token = uuidV4();
@@ -87,11 +89,11 @@ app.post("/login", async (req, res) => {
         token
     });
 
-    res.status(200).send([token, emailDatabase.name]);
+    return res.status(200).send([token, emailDatabase.name]);
 
     } catch (err) {
         console.log(err);
-        res.sendStatus(500);
+        return res.sendStatus(500);
     }
 })
 
