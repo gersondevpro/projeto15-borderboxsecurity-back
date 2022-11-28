@@ -1,4 +1,4 @@
-import express from 'express';
+import express from "express";
 import cors from 'cors';
 import joi from 'joi';
 import userRouter from './routes/userRoutes.js'

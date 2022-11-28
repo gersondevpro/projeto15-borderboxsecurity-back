@@ -7,13 +7,6 @@ async function signUp(req, res) {
     const formNewUser = req.body;
 
     try {
-
-        const validationUser = userSchema.validate(formNewUser, { abortEarly: false });
-        if (validationUser.error) {
-            const errors = validationUser.error.details.map(fail => fail.message);
-            return res.status(401).send(errors)
-        };
-
         const emailDatabase = await users.findOne({ email: formNewUser.email })
         if (emailDatabase) {
             return res.status(409).send("Email de usuário já cadastrado. Insira um email válido.")
